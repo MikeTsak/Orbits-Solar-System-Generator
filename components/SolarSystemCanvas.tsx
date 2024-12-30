@@ -8,6 +8,8 @@ import Planet from './Planet';
 import SpaceStation from './SpaceStation';
 import ShipWreck from './ShipWreck';
 import Ufo from './Ufo';
+import { PlanetData } from '../types/PlanetData';
+
 
 interface OrbitObject {
   size: number;
@@ -20,7 +22,7 @@ interface OrbitObject {
 // Moon/Planet definitions omitted for brevity
 
 interface SolarSystemCanvasProps {
-  canvasContainerRef: RefObject<HTMLDivElement>;
+  canvasContainerRef: React.RefObject<HTMLDivElement | null>;
   starColor: string;
   starSize: number;
   starLightIntensity: number;
@@ -32,6 +34,7 @@ interface SolarSystemCanvasProps {
   ufos: OrbitObject[];
   onSelectBody: (body: { type: 'star' | 'planet'; size: number }) => void;
 }
+
 
 export default function SolarSystemCanvas({
   canvasContainerRef,
@@ -88,13 +91,7 @@ export default function SolarSystemCanvas({
 
         {/* Space Stations */}
         {spaceStations.map((obj, idx) => {
-          let parentPos = [0, 0, 0];
-          // If orbits a planet, we can pass planet's current position:
-          // BUT in a simple approach, we pass [0,0,0], and inside SpaceStation 
-          // we just do a second approach (like how Moons do it). 
-          // For a truly accurate approach, we'd retrieve the planet's position 
-          // at runtime. That requires a "Planet" reference, or you can nest them 
-          // in the planet group, similar to how Moons are done.
+          let parentPos: [number, number, number] = [0, 0, 0]; 
           return (
             <SpaceStation
               key={idx}
@@ -102,8 +99,6 @@ export default function SolarSystemCanvas({
               orbitRadius={obj.orbitRadius}
               orbitSpeed={obj.orbitSpeed}
               spinSpeed={obj.spinSpeed}
-              // if parentPlanetIndex != null, we might pass the planet's position 
-              // or even nest the <SpaceStation> inside the Planet group. 
               parentPosition={parentPos}
             />
           );
@@ -111,7 +106,7 @@ export default function SolarSystemCanvas({
 
         {/* Ship Wrecks */}
         {shipWrecks.map((obj, idx) => {
-          let parentPos = [0, 0, 0];
+          let parentPos: [number, number, number] = [0, 0, 0];
           return (
             <ShipWreck
               key={idx}
@@ -126,7 +121,7 @@ export default function SolarSystemCanvas({
 
         {/* UFOs */}
         {ufos.map((obj, idx) => {
-          let parentPos = [0, 0, 0];
+          let parentPos: [number, number, number] = [0, 0, 0];
           return (
             <Ufo
               key={idx}

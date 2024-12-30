@@ -1,7 +1,7 @@
-// components/Planet.tsx
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
+import * as THREE from 'three'; // Import THREE
 import Moon from './Moon';
 
 interface MoonData {

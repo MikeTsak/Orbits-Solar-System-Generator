@@ -1,6 +1,6 @@
-// components/Ufo.tsx
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three'; // Import THREE
 
 interface UfoProps {
   size: number;
@@ -18,7 +18,7 @@ export default function Ufo({
   orbitRadius,
   orbitSpeed,
   spinSpeed,
-  parentPosition = [0, 0, 0]
+  parentPosition = [0, 0, 0],
 }: UfoProps) {
   const groupRef = useRef<THREE.Group>(null);
   const ufoRef = useRef<THREE.Mesh>(null);

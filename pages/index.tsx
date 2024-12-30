@@ -368,22 +368,40 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-black to-gray-900 text-gray-200">
       <Head>
-        <title>Solar System - Combined Seeds + New Objects</title>
+        <title>Orbits System Generator 🚀</title>
         <meta
           name="description"
-          content="Random or JSON-based seed, plus stations/shipwrecks/UFOs orbiting planets or star."
+          content="🌌 Create and customize your solar system with Orbits System Generator! Powered by miketsak.gr."
         />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Product+Sans:wght@400;700&display=swap"
-          rel="stylesheet"
+        <meta name="author" content="miketsak.gr" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/logo.jpeg" />
+
+        {/* Open Graph Meta Tags */}
+        <meta property="og:title" content="Orbits System Generator 🚀" />
+        <meta
+          property="og:description"
+          content="🌌 Create and customize your solar system with Orbits System Generator! Powered by miketsak.gr."
         />
-        <style>{`
-          html, body {
-            font-family: 'Product Sans', sans-serif;
-          }
-        `}</style>
+        <meta property="og:image" content="/logo.jpeg" />
+        <meta property="og:url" content="https://orbits.miketsak.gr" />
+        <meta property="og:type" content="website" />
+
+        {/* Twitter Card Meta Tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Orbits System Generator 🚀" />
+        <meta
+          name="twitter:description"
+          content="🌌 Create and customize your solar system with Orbits System Generator! Powered by miketsak.gr."
+        />
+        <meta name="twitter:image" content="/logo.jpeg" />
+        <meta name="twitter:site" content="@miketsak" />
+
+        {/* Emojis for Style */}
+        <meta
+          name="keywords"
+          content="solar system generator, planets, stars, moons, 3D solar system, miketsak.gr 🚀🌌🪐, warhammer, warhammer system generator, rogue trader, "
+        />
       </Head>
 
       <header className="py-8 text-center">
@@ -1156,7 +1174,7 @@ function OrbitObjectsUI({
                 }}
                 className="w-16 rounded border border-gray-600 bg-gray-700 px-2 py-1 focus:outline-none"
               />
-              <p className="text-xs text-gray-400">blank => orbits star</p>
+              <p className="text-xs text-gray-400">blank =&gt; orbits star</p>
             </div>
 
             <button

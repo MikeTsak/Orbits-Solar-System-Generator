@@ -1,6 +1,6 @@
-// components/SpaceStation.tsx
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three'; // Import THREE
 
 interface SpaceStationProps {
   size: number;           // scale
@@ -12,11 +12,6 @@ interface SpaceStationProps {
 
 /**
  * A pyramid geometry can be approximated by a ConeGeometry 
- * with a height and a base radius. 
- * We can invert it if we want a "pyramid" shape, or 
- * use a custom pyramid geometry. 
- * 
- * For simplicity, let's do a Cone with (height = size * 2, radius = size).
  */
 export default function SpaceStation({
   size,
