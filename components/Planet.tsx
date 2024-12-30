@@ -8,40 +8,48 @@ interface MoonData {
   size: number;
   orbitRadius: number;
   orbitSpeed: number;
+  spinSpeed: number;
+  texture: string;
 }
 
 interface PlanetProps {
   size: number;
-  texturePath: string;   // e.g. '/textures/earth.jpg'
   orbitRadius: number;
   orbitSpeed: number;
+  spinSpeed: number; // how fast it spins on axis
+  texturePath: string;
   moons: MoonData[];
+  moonTextures: Record<string, string>;
   onClick?: () => void;
 }
 
 export default function Planet({
   size,
-  texturePath,
   orbitRadius,
   orbitSpeed,
+  spinSpeed,
+  texturePath,
   moons,
+  moonTextures,
   onClick
 }: PlanetProps) {
   const groupRef = useRef<THREE.Group>(null);
   const planetRef = useRef<THREE.Mesh>(null);
 
   // load planet texture
-  const texture = useTexture(texturePath);
+  const planetTexture = useTexture(texturePath);
 
   useFrame(({ clock }) => {
     if (groupRef.current) {
+      // orbit the star
       const t = clock.getElapsedTime() * orbitSpeed;
       const x = Math.cos(t) * orbitRadius;
       const z = Math.sin(t) * orbitRadius;
       groupRef.current.position.set(x, 0, z);
     }
     if (planetRef.current) {
-      planetRef.current.rotation.y += 0.01;
+      // spin on axis
+      planetRef.current.rotation.y += spinSpeed;
     }
   });
 
@@ -57,17 +65,27 @@ export default function Planet({
         }}
       >
         <sphereGeometry args={[size, 32, 32]} />
-        <meshStandardMaterial map={texture} />
+        <meshStandardMaterial
+          map={planetTexture}
+          metalness={0}
+          roughness={1}
+        />
       </mesh>
 
-      {moons.map((moon, index) => (
-        <Moon
-          key={index}
-          size={moon.size}
-          orbitRadius={moon.orbitRadius}
-          orbitSpeed={moon.orbitSpeed}
-        />
-      ))}
+      {/* Moons */}
+      {moons.map((moon, index) => {
+        const moonTexturePath = moonTextures[moon.texture];
+        return (
+          <Moon
+            key={index}
+            size={moon.size}
+            orbitRadius={moon.orbitRadius}
+            orbitSpeed={moon.orbitSpeed}
+            spinSpeed={moon.spinSpeed}
+            texturePath={moonTexturePath}
+          />
+        );
+      })}
     </group>
   );
 }

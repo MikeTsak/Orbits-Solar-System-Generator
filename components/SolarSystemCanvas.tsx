@@ -1,5 +1,5 @@
 // components/SolarSystemCanvas.tsx
-import React from 'react';
+import React, { RefObject } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 
@@ -10,47 +10,63 @@ interface MoonData {
   size: number;
   orbitRadius: number;
   orbitSpeed: number;
+  spinSpeed: number;
+  texture: string;
 }
 
 interface PlanetData {
   size: number;
-  texture: string; // matches a key of planetTextures
   orbitRadius: number;
   orbitSpeed: number;
+  spinSpeed: number;
+  texture: string;
   moons: MoonData[];
 }
 
 interface SolarSystemCanvasProps {
+  canvasContainerRef: RefObject<HTMLDivElement>;
   starColor: string;
   starSize: number;
-  planetTextures: Record<string, string>; // e.g. { EarthLike: '/textures/earth.jpg', ... }
+  starLightIntensity: number; // NEW
+  planetTextures: Record<string, string>;
+  moonTextures: Record<string, string>;
   planets: PlanetData[];
   onSelectBody: (body: { type: 'star' | 'planet'; size: number }) => void;
 }
 
 export default function SolarSystemCanvas({
+  canvasContainerRef,
   starColor,
   starSize,
+  starLightIntensity, // used for pointLight
   planetTextures,
+  moonTextures,
   planets,
   onSelectBody
 }: SolarSystemCanvasProps) {
   return (
-    <div className="w-full h-[600px] bg-black/50 border border-gray-700 rounded-md shadow-inner">
+    <div
+      ref={canvasContainerRef}
+      className="relative flex-1 w-full h-[600px] border border-gray-700 rounded-md shadow-inner bg-black/50"
+    >
       <Canvas shadows camera={{ position: [0, 30, 50], fov: 60 }}>
         <Stars radius={100} depth={50} count={2000} factor={4} saturation={0} fade />
+
         <OrbitControls enableZoom={true} />
 
-        <ambientLight intensity={0.2} />
+        {/* Slight ambient light so we can see unlit side a bit */}
+        <ambientLight intensity={0.4} />
+
+        {/* The star's main light */}
         <pointLight
           position={[0, 0, 0]}
-          intensity={2}
+          intensity={starLightIntensity}
           castShadow
-          shadow-mapSize-width={1024}
-          shadow-mapSize-height={1024}
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
         />
 
-        {/* Star at origin */}
+        {/* The Star at origin */}
         <Star
           color={starColor}
           size={starSize}
@@ -62,10 +78,12 @@ export default function SolarSystemCanvas({
           <Planet
             key={idx}
             size={planet.size}
-            texturePath={planetTextures[planet.texture]}
             orbitRadius={planet.orbitRadius}
             orbitSpeed={planet.orbitSpeed}
+            spinSpeed={planet.spinSpeed}
+            texturePath={planetTextures[planet.texture]}
             moons={planet.moons}
+            moonTextures={moonTextures}
             onClick={() => onSelectBody({ type: 'planet', size: planet.size })}
           />
         ))}

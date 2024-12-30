@@ -13,11 +13,11 @@ export default function Star({ color, size, onClick }: StarProps) {
 
   useFrame(() => {
     if (starRef.current) {
+      // slow rotation
       starRef.current.rotation.y += 0.0005;
     }
   });
 
-  // scale star to look bigger
   const starRadius = size * 5;
 
   return (

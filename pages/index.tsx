@@ -3,17 +3,18 @@ import React, { useState, useRef } from 'react';
 import Head from 'next/head';
 import SolarSystemCanvas from '../components/SolarSystemCanvas';
 
-// Earth & Sun references (for the stats panel)
-const EARTH_RADIUS = 6_371_000;  // 6,371,000 m
-const EARTH_MASS = 5.972e24;     // 5.972×10^24 kg
-const SUN_RADIUS = 6.957e8;      // 695,700,000 m
-const SUN_MASS = 1.989e30;       // 1.989×10^30 kg
-const G = 6.6743e-11;            // gravitational constant
+// Earth & Sun references
+const EARTH_RADIUS = 6_371_000;
+const EARTH_MASS = 5.972e24;
+const SUN_RADIUS = 6.957e8;
+const SUN_MASS = 1.989e30;
+const G = 6.6743e-11;
 
-// Planet texture paths (including your new ones)
+// Planet texture paths
 const PLANET_TEXTURE_PATHS = {
   EarthLike: '/textures/earth.jpg',
   GasGiant: '/textures/jupiter.jpg',
+  Forestworld: '/textures/forestworld.jpg',
   Rocky: '/textures/mars.jpg',
   Desert: '/textures/desert.jpg',
   WaterWorld: '/textures/waterworld.jpg',
@@ -21,7 +22,14 @@ const PLANET_TEXTURE_PATHS = {
   MagmaPlanet: '/textures/magma.png',
 };
 
-// For star color
+// Moon texture paths
+const MOON_TEXTURE_PATHS = {
+  Gray: '/textures-moons/moon_gray.jpg',
+  Cratered: '/textures-moons/moon_cratered.jpg',
+  IceMoon: '/textures-moons/moon_ice.jpg',
+  ForestMoon: '/textures-moons/forest.jpg',
+};
+
 const STAR_COLORS = {
   Blue: '#84b6f4',
   White: '#ffffff',
@@ -35,13 +43,16 @@ interface MoonData {
   size: number;
   orbitRadius: number;
   orbitSpeed: number;
+  spinSpeed: number;           // NEW
+  texture: keyof typeof MOON_TEXTURE_PATHS;
 }
 
 interface PlanetData {
   size: number;
-  texture: keyof typeof PLANET_TEXTURE_PATHS;
   orbitRadius: number;
   orbitSpeed: number;
+  spinSpeed: number;           // NEW
+  texture: keyof typeof PLANET_TEXTURE_PATHS;
   moons: MoonData[];
 }
 
@@ -49,6 +60,7 @@ export default function Home() {
   // Star
   const [starType, setStarType] = useState<keyof typeof STAR_COLORS>('Yellow');
   const [starSize, setStarSize] = useState(1);
+  const [starLightIntensity, setStarLightIntensity] = useState(2.5); // NEW
 
   // Planets
   const [planets, setPlanets] = useState<PlanetData[]>([]);
@@ -57,13 +69,13 @@ export default function Home() {
   const [seed, setSeed] = useState('');
   const [customSeed, setCustomSeed] = useState('');
 
-  // Info sheet (the clicked star/planet)
+  // Info sheet
   const [selectedBody, setSelectedBody] = useState<{
     type: 'star' | 'planet';
     size: number;
   } | null>(null);
 
-  // A ref to the 3D container for the fullscreen feature
+  // Fullscreen ref
   const canvasContainerRef = useRef<HTMLDivElement>(null);
 
   // ---------- SEED HELPERS ----------
@@ -84,56 +96,66 @@ export default function Home() {
     };
   }
 
-  // Generate a system from seed:
-  // - star type/size
-  // - planets: size, texture, plus random # of moons
+  // Generate system from seed
   function generateSystemFromSeed(seedValue: string) {
     const rand = seededRandom(seedValue);
 
-    // Star color
+    // star color + size
     const starKeys = Object.keys(STAR_COLORS) as Array<keyof typeof STAR_COLORS>;
     const starIdx = Math.floor(rand() * starKeys.length);
     const chosenStarType = starKeys[starIdx];
-    // star size [0.5..3]
     const sSize = parseFloat((0.5 + rand() * 2.5).toFixed(1));
 
-    // Planets: 2..5
+    // planet count: 2..5
     const planetCount = 2 + Math.floor(rand() * 4);
     const newPlanets: PlanetData[] = [];
 
     for (let i = 0; i < planetCount; i++) {
-      // planet size [0.5..3]
+      // planet size
       const pSize = parseFloat((0.5 + rand() * 2.5).toFixed(1));
-
-      // random texture
-      const textureKeys = Object.keys(PLANET_TEXTURE_PATHS) as Array<keyof typeof PLANET_TEXTURE_PATHS>;
-      const textureIdx = Math.floor(rand() * textureKeys.length);
-
-      // orbit radius & speed => default
+      // orbit radius & speed
       const orbitR = 10 + i * 5;
       const orbitS = 0.1;
+      // spin speed [0.005..0.02]
+      const spin = parseFloat((0.005 + rand() * 0.015).toFixed(3));
+
+      // random planet texture
+      const planetTexKeys = Object.keys(PLANET_TEXTURE_PATHS) as Array<
+        keyof typeof PLANET_TEXTURE_PATHS
+      >;
+      const ptIdx = Math.floor(rand() * planetTexKeys.length);
 
       // random moon count: 0..2
       const moonCount = Math.floor(rand() * 3);
       const newMoons: MoonData[] = [];
       for (let m = 0; m < moonCount; m++) {
-        // each moon
+        // moon size
         const mSize = parseFloat((0.1 + rand() * 0.4).toFixed(2));
         const mOrbR = 2 + Math.floor(rand() * 4);
         const mOrbS = parseFloat((0.2 + rand() * 0.4).toFixed(2));
+        const mSpin = parseFloat((0.01 + rand() * 0.02).toFixed(3));
+
+        // random moon texture
+        const moonTexKeys = Object.keys(MOON_TEXTURE_PATHS) as Array<
+          keyof typeof MOON_TEXTURE_PATHS
+        >;
+        const mtIdx = Math.floor(rand() * moonTexKeys.length);
 
         newMoons.push({
           size: mSize,
           orbitRadius: mOrbR,
           orbitSpeed: mOrbS,
+          spinSpeed: mSpin,
+          texture: moonTexKeys[mtIdx],
         });
       }
 
       newPlanets.push({
         size: pSize,
-        texture: textureKeys[textureIdx],
         orbitRadius: orbitR,
         orbitSpeed: orbitS,
+        spinSpeed: spin,
+        texture: planetTexKeys[ptIdx],
         moons: newMoons,
       });
     }
@@ -144,19 +166,12 @@ export default function Home() {
     setSeed(seedValue);
   }
 
-  // "Load from seed" button
   const handleLoadFromSeed = () => {
     if (!customSeed.trim()) return;
     generateSystemFromSeed(customSeed.trim());
   };
 
-  // ---------- Info Panel Calculations ----------
-  const EARTH_RADIUS = 6_371_000;
-  const EARTH_MASS = 5.972e24;
-  const SUN_RADIUS = 6.957e8;
-  const SUN_MASS = 1.989e30;
-  const G = 6.6743e-11;
-
+  // ---------- Stats Panel ----------
   const numberFormatter = new Intl.NumberFormat('en-US', {
     notation: 'standard',
     maximumFractionDigits: 2,
@@ -167,13 +182,11 @@ export default function Home() {
 
   function calculateStats(body: { type: 'star' | 'planet'; size: number }) {
     if (body.type === 'star') {
-      // star
       const radius = SUN_RADIUS * body.size;
       const mass = SUN_MASS * Math.pow(body.size, 3);
       const gravity = (G * mass) / (radius * radius);
       const circumference = 2 * Math.PI * radius;
       const gravitySun = (G * SUN_MASS) / (SUN_RADIUS * SUN_RADIUS);
-
       return {
         radius,
         mass,
@@ -183,12 +196,10 @@ export default function Home() {
         gravityRatio: gravity / gravitySun,
       };
     } else {
-      // planet
       const radius = EARTH_RADIUS * body.size;
       const mass = EARTH_MASS * Math.pow(body.size, 3);
       const gravity = (G * mass) / (radius * radius);
       const circumference = 2 * Math.PI * radius;
-
       return {
         radius,
         mass,
@@ -204,7 +215,6 @@ export default function Home() {
   if (selectedBody) {
     const stats = calculateStats(selectedBody);
     const isStar = selectedBody.type === 'star';
-
     statsPanel = (
       <div className="fixed top-24 right-5 z-50 w-64 rounded-md bg-gray-800/90 p-4 shadow-lg backdrop-blur">
         <h3 className="mb-2 text-lg font-bold tracking-wide">
@@ -212,16 +222,13 @@ export default function Home() {
         </h3>
         <ul className="space-y-1 text-sm">
           <li>
-            <span className="font-semibold">Radius (m):</span>{' '}
-            {formatNumber(stats.radius)}
+            <span className="font-semibold">Radius (m):</span> {formatNumber(stats.radius)}
           </li>
           <li>
-            <span className="font-semibold">Circumference (m):</span>{' '}
-            {formatNumber(stats.circumference)}
+            <span className="font-semibold">Circumference (m):</span> {formatNumber(stats.circumference)}
           </li>
           <li>
-            <span className="font-semibold">Mass (kg):</span>{' '}
-            {formatNumber(stats.mass)}
+            <span className="font-semibold">Mass (kg):</span> {formatNumber(stats.mass)}
           </li>
           <li>
             <span className="font-semibold">Surface Gravity (m/s²):</span>{' '}
@@ -231,10 +238,7 @@ export default function Home() {
             <>
               <li>
                 <span className="font-semibold">Mass vs Sun:</span>{' '}
-                {stats.massRatio.toLocaleString('en-US', {
-                  maximumFractionDigits: 2,
-                })}
-                ×
+                {stats.massRatio.toLocaleString('en-US', { maximumFractionDigits: 2 })}×
               </li>
               <li>
                 <span className="font-semibold">Gravity vs Sun:</span>{' '}
@@ -248,10 +252,7 @@ export default function Home() {
             <>
               <li>
                 <span className="font-semibold">Mass vs Earth:</span>{' '}
-                {stats.massRatio.toLocaleString('en-US', {
-                  maximumFractionDigits: 2,
-                })}
-                ×
+                {stats.massRatio.toLocaleString('en-US', { maximumFractionDigits: 2 })}×
               </li>
               <li>
                 <span className="font-semibold">Gravity vs Earth:</span>{' '}
@@ -273,22 +274,25 @@ export default function Home() {
     );
   }
 
-  // ---------- Planet + Moon CRUD ----------
+  // ---------- Planet & Moon CRUD ----------
   const handleAddPlanet = () => {
     setPlanets((prev) => [
       ...prev,
       {
         size: 1,
-        texture: 'EarthLike',
         orbitRadius: 10 + prev.length * 5,
         orbitSpeed: 0.1,
+        spinSpeed: 0.01, // default spin
+        texture: 'EarthLike',
         moons: [],
       },
     ]);
   };
+
   const handleRemovePlanet = (idx: number) => {
     setPlanets((prev) => prev.filter((_, i) => i !== idx));
   };
+
   const handleAddMoon = (planetIndex: number) => {
     setPlanets((prev) =>
       prev.map((planet, i) => {
@@ -301,6 +305,8 @@ export default function Home() {
                 size: 0.3,
                 orbitRadius: 3,
                 orbitSpeed: 0.3,
+                spinSpeed: 0.01, // default spin
+                texture: 'Gray',
               },
             ],
           };
@@ -309,6 +315,7 @@ export default function Home() {
       })
     );
   };
+
   const handleRemoveMoon = (planetIndex: number, moonIndex: number) => {
     setPlanets((prev) =>
       prev.map((planet, i) => {
@@ -323,7 +330,7 @@ export default function Home() {
     );
   };
 
-  // ---------- Fullscreen Handler ----------
+  // Fullscreen
   const handleFullscreen = () => {
     if (canvasContainerRef.current) {
       canvasContainerRef.current.requestFullscreen?.();
@@ -333,10 +340,10 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-black to-gray-900 text-gray-200">
       <Head>
-        <title>Solar System (More Planets + Fullscreen)</title>
+        <title>Solar System - Light Intensity + Spin Speed</title>
         <meta
           name="description"
-          content="Custom solar system with orbit radius & speed for planets and moons, plus fullscreen mode."
+          content="Sun has light intensity, planets & moons have spin speed."
         />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -352,22 +359,19 @@ export default function Home() {
       </Head>
 
       <header className="py-8 text-center">
-        <h1 className="mb-2 text-3xl font-bold tracking-wide">
-          Solar System Generator
-        </h1>
+        <h1 className="mb-2 text-3xl font-bold tracking-wide">Solar System Generator</h1>
         <p className="text-sm text-gray-300">
-          Enter a seed to auto-generate star/planet sizes & textures.  
-          You can still manually set orbit radius & speed (and click Fullscreen).
+          Sun with variable light intensity, plus spin speed fields for planets & moons.
         </p>
       </header>
 
       <main className="relative mx-auto mb-8 flex-1 flex flex-col items-center justify-center max-w-7xl px-4">
-        {statsPanel /* Info panel if something is clicked */}
+        {statsPanel}
 
         <div className="grid gap-8 lg:grid-cols-2">
-          {/* Left Column: seed, star config, planets config */}
+          {/* Left Column */}
           <section className="space-y-6">
-            {/* Seed Loading */}
+            {/* Seed load */}
             <div className="rounded-md bg-white/5 p-4 shadow-md backdrop-blur-sm">
               <h2 className="mb-3 text-lg font-semibold">Load from Seed</h2>
               <div className="flex items-center gap-2">
@@ -398,9 +402,7 @@ export default function Home() {
               <label className="mb-1 block">Star Type (Color):</label>
               <select
                 value={starType}
-                onChange={(e) =>
-                  setStarType(e.target.value as keyof typeof STAR_COLORS)
-                }
+                onChange={(e) => setStarType(e.target.value as keyof typeof STAR_COLORS)}
                 className="mb-3 w-full rounded border border-gray-700 bg-gray-800 px-3 py-1 focus:outline-none"
               >
                 {Object.keys(STAR_COLORS).map((type) => (
@@ -416,11 +418,21 @@ export default function Home() {
                 step="0.1"
                 value={starSize}
                 onChange={(e) => setStarSize(parseFloat(e.target.value))}
+                className="mb-3 w-full rounded border border-gray-700 bg-gray-800 px-3 py-1 focus:outline-none"
+              />
+
+              {/* Light Intensity */}
+              <label className="mb-1 block">Light Intensity:</label>
+              <input
+                type="number"
+                step="0.1"
+                value={starLightIntensity}
+                onChange={(e) => setStarLightIntensity(parseFloat(e.target.value))}
                 className="w-full rounded border border-gray-700 bg-gray-800 px-3 py-1 focus:outline-none"
               />
             </div>
 
-            {/* Planets */}
+            {/* Planets config */}
             <div className="rounded-md bg-white/5 p-4 shadow-md backdrop-blur-sm">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Planets Configuration</h2>
@@ -433,10 +445,7 @@ export default function Home() {
               </div>
 
               {planets.map((planet, i) => (
-                <div
-                  key={i}
-                  className="mb-4 space-y-3 rounded bg-gray-800/50 p-3"
-                >
+                <div key={i} className="mb-4 space-y-3 rounded bg-gray-800/50 p-3">
                   {/* Planet row */}
                   <div className="flex flex-wrap gap-3">
                     {/* Size */}
@@ -463,8 +472,7 @@ export default function Home() {
                       <select
                         value={planet.texture}
                         onChange={(e) => {
-                          const tex =
-                            e.target.value as keyof typeof PLANET_TEXTURE_PATHS;
+                          const tex = e.target.value as keyof typeof PLANET_TEXTURE_PATHS;
                           setPlanets((prev) =>
                             prev.map((p, idx) =>
                               idx === i ? { ...p, texture: tex } : p
@@ -517,6 +525,25 @@ export default function Home() {
                       />
                     </div>
 
+                    {/* Spin Speed */}
+                    <div>
+                      <label className="mb-1 block text-sm">Spin Speed:</label>
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={planet.spinSpeed}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          setPlanets((prev) =>
+                            prev.map((p, idx) =>
+                              idx === i ? { ...p, spinSpeed: val } : p
+                            )
+                          );
+                        }}
+                        className="w-16 rounded border border-gray-600 bg-gray-700 px-2 py-1 focus:outline-none"
+                      />
+                    </div>
+
                     <button
                       onClick={() => handleRemovePlanet(i)}
                       className="ml-auto rounded bg-red-600 px-3 py-1 text-white hover:bg-red-500"
@@ -554,11 +581,8 @@ export default function Home() {
                               setPlanets((prev) =>
                                 prev.map((pl, pIndex) => {
                                   if (pIndex === i) {
-                                    const updatedMoons = pl.moons.map(
-                                      (mm, mmIdx) =>
-                                        mmIdx === mIdx
-                                          ? { ...mm, size: newSize }
-                                          : mm
+                                    const updatedMoons = pl.moons.map((mm, mmIdx) =>
+                                      mmIdx === mIdx ? { ...mm, size: newSize } : mm
                                     );
                                     return { ...pl, moons: updatedMoons };
                                   }
@@ -566,7 +590,7 @@ export default function Home() {
                                 })
                               );
                             }}
-                            className="w-16 rounded border border-gray-500 bg-gray-600 px-1 py-0.5 focus:outline-none"
+                            className="w-14 rounded border border-gray-500 bg-gray-600 px-1 py-0.5 focus:outline-none"
                           />
                         </div>
                         {/* Moon Orbit Radius */}
@@ -581,11 +605,8 @@ export default function Home() {
                               setPlanets((prev) =>
                                 prev.map((pl, pIndex) => {
                                   if (pIndex === i) {
-                                    const updatedMoons = pl.moons.map(
-                                      (mm, mmIdx) =>
-                                        mmIdx === mIdx
-                                          ? { ...mm, orbitRadius: val }
-                                          : mm
+                                    const updatedMoons = pl.moons.map((mm, mmIdx) =>
+                                      mmIdx === mIdx ? { ...mm, orbitRadius: val } : mm
                                     );
                                     return { ...pl, moons: updatedMoons };
                                   }
@@ -593,7 +614,7 @@ export default function Home() {
                                 })
                               );
                             }}
-                            className="w-16 rounded border border-gray-500 bg-gray-600 px-1 py-0.5 focus:outline-none"
+                            className="w-14 rounded border border-gray-500 bg-gray-600 px-1 py-0.5 focus:outline-none"
                           />
                         </div>
                         {/* Moon Orbit Speed */}
@@ -608,11 +629,8 @@ export default function Home() {
                               setPlanets((prev) =>
                                 prev.map((pl, pIndex) => {
                                   if (pIndex === i) {
-                                    const updatedMoons = pl.moons.map(
-                                      (mm, mmIdx) =>
-                                        mmIdx === mIdx
-                                          ? { ...mm, orbitSpeed: val }
-                                          : mm
+                                    const updatedMoons = pl.moons.map((mm, mmIdx) =>
+                                      mmIdx === mIdx ? { ...mm, orbitSpeed: val } : mm
                                     );
                                     return { ...pl, moons: updatedMoons };
                                   }
@@ -620,8 +638,60 @@ export default function Home() {
                                 })
                               );
                             }}
-                            className="w-16 rounded border border-gray-500 bg-gray-600 px-1 py-0.5 focus:outline-none"
+                            className="w-14 rounded border border-gray-500 bg-gray-600 px-1 py-0.5 focus:outline-none"
                           />
+                        </div>
+                        {/* Moon Spin Speed */}
+                        <div>
+                          <label className="block text-xs">Spin S.:</label>
+                          <input
+                            type="number"
+                            step="0.001"
+                            value={moon.spinSpeed}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              setPlanets((prev) =>
+                                prev.map((pl, pIndex) => {
+                                  if (pIndex === i) {
+                                    const updatedMoons = pl.moons.map((mm, mmIdx) =>
+                                      mmIdx === mIdx ? { ...mm, spinSpeed: val } : mm
+                                    );
+                                    return { ...pl, moons: updatedMoons };
+                                  }
+                                  return pl;
+                                })
+                              );
+                            }}
+                            className="w-14 rounded border border-gray-500 bg-gray-600 px-1 py-0.5 focus:outline-none"
+                          />
+                        </div>
+                        {/* Moon Texture */}
+                        <div>
+                          <label className="block text-xs">Texture:</label>
+                          <select
+                            value={moon.texture}
+                            onChange={(e) => {
+                              const newTex = e.target.value as keyof typeof MOON_TEXTURE_PATHS;
+                              setPlanets((prev) =>
+                                prev.map((pl, pIndex) => {
+                                  if (pIndex === i) {
+                                    const updatedMoons = pl.moons.map((mm, mmIdx) =>
+                                      mmIdx === mIdx ? { ...mm, texture: newTex } : mm
+                                    );
+                                    return { ...pl, moons: updatedMoons };
+                                  }
+                                  return pl;
+                                })
+                              );
+                            }}
+                            className="w-20 rounded border border-gray-500 bg-gray-600 px-1 py-0.5 focus:outline-none"
+                          >
+                            {Object.keys(MOON_TEXTURE_PATHS).map((mt) => (
+                              <option key={mt} value={mt}>
+                                {mt}
+                              </option>
+                            ))}
+                          </select>
                         </div>
 
                         <button
@@ -648,10 +718,12 @@ export default function Home() {
             </button>
 
             <SolarSystemCanvas
-              canvasContainerRef={canvasContainerRef} // pass the ref
+              canvasContainerRef={canvasContainerRef}
               starColor={STAR_COLORS[starType]}
               starSize={starSize}
+              starLightIntensity={starLightIntensity} // pass new field
               planetTextures={PLANET_TEXTURE_PATHS}
+              moonTextures={MOON_TEXTURE_PATHS}
               planets={planets}
               onSelectBody={(body) => setSelectedBody(body)}
             />
