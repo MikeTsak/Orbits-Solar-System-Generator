@@ -1,0 +1,1 @@
+epic now some styling options, make th footer stick to the bottom of the screen. make all the options collapsable and make th 3d model take up all the left rrealeste of the screen
